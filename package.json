@@ -1,0 +1,11 @@
+{
+  "name": "auto-shape-outside",
+  "version": "0.1.0",
+  "description": "Generate shape-outside polygon from an image",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Max Mathieu <maxence.mathieu@gmail.com>",
+  "license": "MIT"
+}

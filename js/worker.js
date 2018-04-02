@@ -1,8 +1,5 @@
-// TODO: create Polygon class, include and rewrite douglasPeucker function
-// TODO: cut only after polygon is done
 // BUG: marching squares improved to handle knots
-// TODO: improve variable names
-
+// TODO: cut after polygon is done
 // TODO: add console debugging
 
 // TODO: test with concave shapes
@@ -143,14 +140,6 @@ ComputeShapeOutside.prototype.computePaddedMask = function(mask) {
   maxX -= wPadding;
   maxY -= wPadding;
   edges.forEach(function(x, y) {
-    if(x < wPadding)
-      x = wPadding;
-    else if(x > maxX)
-      x = maxX;
-    if(y < wPadding)
-      y = wPadding;
-    else if(y > maxY)
-      y = maxY;
     grid[x][y] = 2;
   });
   return grid;
@@ -158,7 +147,7 @@ ComputeShapeOutside.prototype.computePaddedMask = function(mask) {
 
 ComputeShapeOutside.prototype.computeContour = function(mask) {
   var wPadding = this.wPadding;
-  var polygon = new PointList();
+  var polygon = new Polygon();
   var curX, curY;
   // find starting point
   var maxX = this.wWidth - 1, maxY = this.wHeight - 1;
@@ -192,7 +181,7 @@ ComputeShapeOutside.prototype.computeContour = function(mask) {
       break;
     
     if(dx !== next[0] || dy !== next[1]) {
-      polygon.push(curX - wPadding, curY - wPadding);
+      polygon.push(curX, curY);
       dx = next[0];
       dy = next[1];
     }
@@ -204,104 +193,130 @@ ComputeShapeOutside.prototype.computeContour = function(mask) {
 
 ComputeShapeOutside.prototype.simplifyContour = function(contour) {
   var epsilon = this.options.padding / 5; // TODO: param
-  var epsilon2 = epsilon * epsilon;
-  var polygon = douglasPeucker(contour);
-  // remove very short lines left by douglasPeucker
-  var result = new PointList(2);
-  result.push(polygon.x[0], polygon.y[0]);
-  for(var i = 1; i < polygon.length; i++) {
-    if(squareDistance(polygon.x[i], polygon.y[i], polygon.x[i - 1], polygon.y[i - 1]) >= epsilon2)
-      result.push(polygon.x[i], polygon.y[i]);
-  }
-  return result;
-  
-  // https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
-  function douglasPeucker(polygon) {
-    if(polygon.length <= 3)
-      return polygon;
-    
-    // Find the point with the maximum distance
-    var maxI = polygon.length - 1, maxDistance2 = 0, maxDistanceIndex = 0;
-    for(var i = 1; i < maxI; i++) {
-      var distance2 = squareDistanceToLine(polygon.x[i], polygon.y[i], polygon.x[0], polygon.y[0], polygon.x[maxI], polygon.y[maxI]);
-      if(distance2 > maxDistance2) {
-        maxDistance2 = distance2;
-        maxDistanceIndex = i;
-      }
-    }
-    
-    // If max distance is greater than epsilon, recursively simplify
-    if(maxDistance2 <= epsilon2) {
-      var result = new PointList(2);
-      result.push(polygon.x[0], polygon.y[0]);
-      result.push(polygon.x[maxI], polygon.y[maxI]);
-      return result;
-    }
-      
-    // Recursive call
-    var slice1 = new PointList();
-    for(var i = 0; i < maxDistanceIndex; i++)
-      slice1.push(polygon.x[i], polygon.y[i]);
-    var polygon1 = douglasPeucker(slice1);
-    
-    var slice2 = new PointList();
-    for(var i = maxDistanceIndex; i <= maxI; i++)
-      slice2.push(polygon.x[i], polygon.y[i]);
-    var polygon2 = douglasPeucker(slice2);
-
-    var result = new PointList();
-    for(var i = 0; i < polygon1.length; i++)
-      result.push(polygon1.x[i], polygon1.y[i]);
-    for(var i = 0; i < polygon2.length; i++)
-      result.push(polygon2.x[i], polygon2.y[i]);
-    return result;
-  }
-  
-  function squareDistanceToLine(x, y, x1, y1, x2, y2) {
-    // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-    var dx = x2 - x1, dy = y2 - y1;
-    var numerator = dy * x - dx * y + x2 * y1 - x1 * y2;
-    var denominator = dx * dx + dy * dy;
-    return numerator * numerator / denominator;
-  }
-  
-  function squareDistance(x1, y1, x2, y2) {
-    // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-    var dx = x2 - x1, dy = y2 - y1;
-    return dx * dx + dy * dy;
-  }
+  return contour.simplify(epsilon);
 };
 
 function Mask() {
   // TODO, migrate all grid stuff in there?
 }
 
-function PointList() {
+function PointList(length) {
   this.length = 0;
-  this.x = new Uint16Array(64);
-  this.y = new Uint16Array(64);
+  this.x = new Uint16Array(length || 64);
+  this.y = new Uint16Array(length || 64);
+}
+
+PointList.prototype._extend = function(newLength) {
+  var newX = new Uint16Array(newLength);
+  var newY = new Uint16Array(newLength);
+  newX.set(this.x, 0);
+  newY.set(this.y, 0);
+  this.x = newX;
+  this.y = newY;
 }
 
 PointList.prototype.push = function(x, y) {
   var length = this.length;
-  if(this.x.length === length) {
-    // extend
-    var newX = new Uint16Array(length * 2);
-    var newY = new Uint16Array(length * 2);
-    newX.set(this.x, 0);
-    newY.set(this.y, 0);
-    this.x = newX;
-    this.y = newY;
-  }
+  if(this.x.length === length)
+    this._extend(length < 65536 ? length * 2 : 65536);
   this.x[length] = x;
   this.y[length] = y;
   this.length++;
 };
 
-PointList.prototype.forEach = function(callback) {
-  for(var i = 0; i < this.length; i++) {
-    var stop = callback(this.x[i], this.y[i], i);
-    if(stop)
-      break;
-  }
+PointList.prototype.concat = function(other) {
+  var newLength = this.length + other.length;
+  if(this.x.length <= newLength)
+    this._extend(newLength);
+  this.x.set(other.x.slice(0, other.length), this.length);
+  this.y.set(other.y.slice(0, other.length), this.length);
+  this.length = newLength;
 };
+
+PointList.prototype.forEach = function(callback) {
+  for(var i = 0; i < this.length; i++)
+    callback(this.x[i], this.y[i], i);
+};
+
+PointList.prototype.slice = function(begin, end) {
+  var length = end - begin;
+  var slice = new Polygon(length);
+  slice.x.set(this.x.slice(begin, end));
+  slice.y.set(this.y.slice(begin, end));
+  slice.length = length;
+  return slice;
+};
+
+function Polygon(length) {
+  PointList.call(this, length);
+};
+Polygon.prototype = PointList.prototype;
+
+Polygon.prototype.crop = function(minX, maxX, minY, maxY) {
+  var result = new Polygon();
+  var isInner = function(i) {
+    // direct access to PointList, but it's fine
+    return this.x[i] >= minX && this.x[i] <= maxX && this.y[i] >= minY && this.y[i] <= maxY;
+  };
+  for(var i = 0; i < this.length; i++) {
+    // 
+  }
+  return this;
+};
+
+Polygon.prototype.simplify = function(epsilon) {
+  var epsilon2 = epsilon * epsilon;
+  var polygon = this._douglasPeucker(epsilon2);
+  
+  // remove very short lines left by douglasPeucker for some reason
+  var result = new Polygon();
+  result.push(polygon.x[0], polygon.y[0]);
+  for(var i = 1; i < polygon.length; i++) {
+    if(squareDistance(polygon.x[i], polygon.y[i], polygon.x[i - 1], polygon.y[i - 1]) >= epsilon2)
+      result.push(polygon.x[i], polygon.y[i]);
+  }
+  return result;
+};
+
+Polygon.prototype._douglasPeucker = function(epsilon2) {
+  // https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+  if(this.length <= 3)
+    return this;
+  
+  // Find the point with the maximum distance
+  var maxI = this.length - 1, maxDistance2 = 0, maxDistanceIndex = 0;
+  for(var i = 1; i < maxI; i++) {
+    // TODO curry function to take x
+    var distance2 = squareDistanceToLine(this.x[i], this.y[i], this.x[0], this.y[0], this.x[maxI], this.y[maxI]);
+    if(distance2 > maxDistance2) {
+      maxDistance2 = distance2;
+      maxDistanceIndex = i;
+    }
+  }
+  
+  // If max distance is greater than epsilon, recursively simplify
+  if(maxDistance2 <= epsilon2) {
+    var result = new Polygon(2);
+    result.push(this.x[0], this.y[0]);
+    result.push(this.x[maxI], this.y[maxI]);
+    return result;
+  }
+  
+  var result = new Polygon();
+  result.concat(this.slice(0, maxDistanceIndex)._douglasPeucker(epsilon2));
+  result.concat(this.slice(maxDistanceIndex, this.length)._douglasPeucker(epsilon2));
+  return result;
+};
+
+function squareDistanceToLine(x, y, x1, y1, x2, y2) {
+  // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+  var dx = x2 - x1, dy = y2 - y1;
+  var numerator = dy * x - dx * y + x2 * y1 - x1 * y2;
+  var denominator = dx * dx + dy * dy;
+  return numerator * numerator / denominator;
+}
+
+function squareDistance(x1, y1, x2, y2) {
+  var dx = x2 - x1, dy = y2 - y1;
+  return dx * dx + dy * dy;
+}

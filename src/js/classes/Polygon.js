@@ -31,13 +31,17 @@ export default class Polygon extends PointList {
 
     // remove very short lines left by douglasPeucker for some reason
     const result = new Polygon();
-    result.push(polygon.x[0], polygon.y[0]);
-    // TODO: loop
-    // TODO: look at previously added point and not previous in polygon
-    for (let i = 1; i < polygon.length; i++) {
-      const d2 = squareDistance(polygon.x[i], polygon.y[i], polygon.x[i - 1], polygon.y[i - 1]);
-      if (d2 >= epsilon2) result.push(polygon.x[i], polygon.y[i]);
-    }
+    const maxI = polygon.length - 1;
+    let curX = polygon.x[maxI];
+    let curY = polygon.y[maxI];
+    result.push(curX, curY);
+    polygon.forEach((x, y) => {
+      if (squareDistance(x, y, curX, curY) >= epsilon2) {
+        curX = x;
+        curY = y;
+        result.push(curX, curY);
+      }
+    });
     return result;
   }
 

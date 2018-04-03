@@ -1,7 +1,6 @@
 // TODO: cleanup
 // TODO: expose all options
-// TODO: preview: only float left/right
-// TODO: make margin a % of image/targetWidth
+// TODO: make margin a %
 (function() {
   var worker = new Worker('./js/worker.js');
   worker.addEventListener('message', function(e) {

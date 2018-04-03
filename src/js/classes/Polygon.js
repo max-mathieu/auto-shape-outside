@@ -1,4 +1,5 @@
-import { PointList } from './PointList';
+import PointList from './PointList';
+import { intersectLines, squareDistance, squareDistanceToLine } from './MathUtils';
 
 export default class Polygon extends PointList {
   clip(x1, y1, x2, y2, isInFunc) {
@@ -30,11 +31,12 @@ export default class Polygon extends PointList {
 
     // remove very short lines left by douglasPeucker for some reason
     const result = new Polygon();
-    result.push(polygon.x[0], polygon.y[0]);
+    result.push(polygon.x[0], polygon.x[0]);
+    // TODO: loop
+    // TODO: look at previously added point and not previous in polygon
     for (let i = 1; i < polygon.length; i++) {
-      if (squareDistance(polygon.x[i], polygon.y[i], polygon.x[i - 1], polygon.y[i - 1]) >= epsilon2) {
-        result.push(polygon.x[i], polygon.y[i]);
-      }
+      const d2 = squareDistance(polygon.x[i], polygon.y[i], polygon.x[i - 1], polygon.y[i - 1]);
+      if (d2 >= epsilon2) result.push(polygon.x[i], polygon.x[i]);
     }
     return result;
   }
@@ -47,11 +49,15 @@ export default class Polygon extends PointList {
     const maxI = this.length - 1;
     let maxDistance2 = 0;
     let maxDistanceIndex = 0;
+    // TODO: internalize to compute some of the values once and for all?
+    const squareDistanceFunc = (x, y) => {
+      const d2 = squareDistanceToLine(this.x[0], this.y[0], this.x[maxI], this.y[maxI], x, y);
+      return d2;
+    };
     for (let i = 1; i < maxI; i++) {
-    // TODO curry function to take x
-      const distance2 = squareDistanceToLine(this.x[i], this.y[i], this.x[0], this.y[0], this.x[maxI], this.y[maxI]);
-      if (distance2 > maxDistance2) {
-        maxDistance2 = distance2;
+      const d2 = squareDistanceFunc(this.x[i], this.y[i]);
+      if (d2 > maxDistance2) {
+        maxDistance2 = d2;
         maxDistanceIndex = i;
       }
     }
@@ -69,33 +75,4 @@ export default class Polygon extends PointList {
     result.concat(this.slice(maxDistanceIndex, this.length)._douglasPeucker(epsilon2));
     return result;
   }
-}
-
-function squareDistanceToLine(x, y, x1, y1, x2, y2) {
-  // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-  let dx = x2 - x1,
-    dy = y2 - y1;
-  const numerator = dy * x - dx * y + x2 * y1 - x1 * y2;
-  const denominator = dx * dx + dy * dy;
-  return numerator * numerator / denominator;
-}
-
-function squareDistance(x1, y1, x2, y2) {
-  let dx = x2 - x1,
-    dy = y2 - y1;
-  return dx * dx + dy * dy;
-}
-
-function intersectLines(x1, y1, x2, y2, x3, y3, x4, y4) {
-  // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
-  const dx12 = x1 - x2;
-  const dy12 = y1 - y2;
-  const dx34 = x3 - x4;
-  const dy34 = y3 - y4;
-  const cross12 = x1 * y2 - x2 * y1;
-  const cross34 = x3 * y4 - x4 * y3;
-  const denominator = dx12 * dy34 - dx34 * dy12;
-  const ix = Math.round((cross12 * dx34 - cross34 * dx12) / denominator);
-  const iy = Math.round((cross12 * dy34 - cross34 * dy12) / denominator);
-  return [ix, iy];
 }

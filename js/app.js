@@ -1,5 +1,6 @@
 // TODO: cleanup
 // TODO: expose all options
+// TODO: preview: only float left/right
 // TODO: make margin a % of image/targetWidth
 (function() {
   var worker = new Worker('./js/worker.js');
@@ -8,9 +9,9 @@
     var height = e.data.pixelData.height;
     // TODO: move to worker.js
     var polygon = [];
-    for(var i = 0; i < e.data.simplifiedContour.length; i++) {
-      var xp = (e.data.simplifiedContour.x[i] / (width-1) * 100).toFixed(1) + '%';
-      var yp = (e.data.simplifiedContour.y[i] / (height-1) * 100).toFixed(1) + '%';
+    for (var i = 0; i < e.data.polygon.length; i++) {
+      var xp = (e.data.polygon.x[i] / (width-1) * 100).toFixed(1) + '%';
+      var yp = (e.data.polygon.y[i] / (height-1) * 100).toFixed(1) + '%';
       polygon.push(xp + ' ' + yp);
     }
     var shapeOutsideStyle = 'shape-outside: polygon(' + polygon.join(', ') + ');';
@@ -52,12 +53,12 @@
       canvas.height = imageData.height;
       var ctx = canvas.getContext('2d');
       ctx.putImageData(imageData, 0, 0);
-      if(polygon) {
+      if (polygon) {
         ctx.fillStyle = 'rgba(255,0,0,.3)';
         ctx.strokeStyle = '#f00';
         ctx.beginPath();
         ctx.moveTo(polygon.x[0], polygon.y[0]);
-        for(var i = 1; i < polygon.length; i++)
+        for (var i = 1; i < polygon.length; i++)
           ctx.lineTo(polygon.x[i], polygon.y[i]);
         ctx.closePath();
         ctx.fill();
@@ -65,7 +66,7 @@
         
         ctx.strokeStyle = '#00f';
         ctx.beginPath();
-        for(var i = 1; i < polygon.length - 1; i+=2) {
+        for (var i = 1; i < polygon.length - 1; i+=2) {
           ctx.moveTo(polygon.x[i], polygon.y[i]);
           ctx.lineTo(polygon.x[i+1], polygon.y[i+1]);
         }
@@ -86,9 +87,9 @@
     img.crossOrigin = 'Anonymous';
     img.onload = function() {
       var scale = 1;
-      if(options.targetWidth)
+      if (options.targetWidth)
         scale = options.targetWidth / img.width;
-      else if(options.targetHeight)
+      else if (options.targetHeight)
         scale = options.targetHeight / img.height;
       canvas.width = Math.round(scale * img.width);
       canvas.height = Math.round(canvas.width / img.width * img.height);

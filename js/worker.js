@@ -1,5 +1,7 @@
 // BUG: marching squares improved to handle knots
-// TODO: cut after polygon is done
+// TODO: ES6
+// TODO: add eslint + airbnb
+// TODO: webpack
 // TODO: add console debugging
 
 // TODO: test with concave shapes
@@ -33,7 +35,7 @@ ComputeShapeOutside.prototype.run = function() {
   var rawMask = this.computeRawMask();
   var paddedMask = this.computePaddedMask(rawMask);
   var rawContour = this.computeRawContour(paddedMask);
-  var polygon = this.computePolygon(contour);
+  var polygon = this.computePolygon(rawContour);
   self.postMessage({
     options: this.options,
     width: this.width,
@@ -47,7 +49,7 @@ ComputeShapeOutside.prototype.run = function() {
 
 ComputeShapeOutside.prototype.getNewGrid = function() {
   var grid = new Array(this.wWidth);
-  for(var x = 0; x < this.wWidth; x++)
+  for (var x = 0; x < this.wWidth; x++)
     grid[x] = new Uint8Array(this.wHeight);
   return grid;
 };
@@ -55,8 +57,8 @@ ComputeShapeOutside.prototype.getNewGrid = function() {
 ComputeShapeOutside.prototype.getImageDataFromGrid = function(grid) {
   var imageData = new Uint8ClampedArray(this.wWidth * this.wHeight * 4);
   var i = 0;
-  for(var y = 0; y < this.wHeight; y++) {
-    for(var x = 0; x < this.wWidth; x++) {
+  for (var y = 0; y < this.wHeight; y++) {
+    for (var x = 0; x < this.wWidth; x++) {
       var r = grid[x][y] > 0 ? 255 : 0;
       var gb = grid[x][y] === 1 ? r : 0;
       imageData[i++] = r;
@@ -75,8 +77,8 @@ ComputeShapeOutside.prototype.computeRawMask = function() {
   var start = this.wPadding;
   var grid = this.getNewGrid();
   var imgX = 0, x = start, y = start;
-  for(var p = 0; p < pixelData.length; p += 4) {
-    if(useAlpha) {
+  for (var p = 0; p < pixelData.length; p += 4) {
+    if (useAlpha) {
       grid[x][y] = pixelData[p+3] < threshold ? 0 : 1;
     } else {
       // compute luminance
@@ -85,7 +87,7 @@ ComputeShapeOutside.prototype.computeRawMask = function() {
     }
     x++;
     imgX++;
-    if(imgX === this.width) {
+    if (imgX === this.width) {
       imgX = 0;
       x = start;
       y++;
@@ -99,29 +101,32 @@ ComputeShapeOutside.prototype.computePaddedMask = function(mask) {
   var grid = this.getNewGrid();
   // flag edge points as 2 and maintain a list
   var edges = new PointList();
-  var maxX = this.wWidth - 1, maxY = this.wHeight - 1, wPadding = this.wPadding;
+  var maxX = this.wWidth - 1;
+  var maxY = this.wHeight - 1;
+  var wPadding = this.wPadding;
   var isInner = function(g, x, y) {
     return g[x-1][y] && g[x+1][y] && g[x][y-1] && g[x][y+1];
   };
+  // copy mask in grid and find initial edges
   var foundEdgesGrid = this.getNewGrid();
-  for(var x = 0; x <= maxX; x++) {
-    for(var y = 0; y <= maxY; y++) {
-      if(!mask[x][y])
+  for (var x = 0; x <= maxX; x++) {
+    for (var y = 0; y <= maxY; y++) {
+      if (!mask[x][y])
         grid[x][y] = 0;
       else {
         grid[x][y] = 1;
-        if(!isInner(mask, x, y)) {
+        if (!isInner(mask, x, y)) {
           edges.push(x, y);
           foundEdgesGrid[x][y] = 1;
         }
       }
     }
   }
-  for(var i = 0; i < padding; i++) {
+  for (var i = 0; i < padding; i++) {
     // update edges
     var candidateEdges = new PointList();
     var addCandidateEdge = function(x, y, force) {
-      if(!foundEdgesGrid[x][y]) {
+      if (!foundEdgesGrid[x][y]) {
         candidateEdges.push(x, y);
         foundEdgesGrid[x][y] = 1;
       }
@@ -135,13 +140,11 @@ ComputeShapeOutside.prototype.computePaddedMask = function(mask) {
     
     edges = new PointList();
     candidateEdges.forEach(function(x, y) {
-      if(!isInner(grid, x, y))
+      if (!isInner(grid, x, y))
         edges.push(x, y);
     });
   }
-  // store edges on the grid, and cut at original image
-  maxX -= wPadding;
-  maxY -= wPadding;
+  // store edges on the grid for next step
   edges.forEach(function(x, y) {
     grid[x][y] = 2;
   });
@@ -155,9 +158,9 @@ ComputeShapeOutside.prototype.computeRawContour = function(mask) {
   // find starting point
   var maxX = this.wWidth - 1, maxY = this.wHeight - 1;
   var getFirst = function() {
-    for(var x = 0; x <= maxX; x++) {
-      for(var y = 0; y <= maxY; y++) {
-        if(mask[x][y] === 2)
+    for (var x = 0; x <= maxX; x++) {
+      for (var y = 0; y <= maxY; y++) {
+        if (mask[x][y] === 2)
           return [x, y];
       }
     }
@@ -167,10 +170,10 @@ ComputeShapeOutside.prototype.computeRawContour = function(mask) {
   curY = first[1];
   
   var getNext = function() {
-    for(var dy = -1; dy <= 1; dy++) {
-      for(var dx = -1; dx <= 1; dx++) {
+    for (var dy = -1; dy <= 1; dy++) {
+      for (var dx = -1; dx <= 1; dx++) {
         var newX = curX + dx, newY = curY + dy;
-        if(mask[newX][newY] === 2)
+        if (mask[newX][newY] === 2)
           return [dx, dy];
       }
     }
@@ -180,10 +183,10 @@ ComputeShapeOutside.prototype.computeRawContour = function(mask) {
     mask[curX][curY] = 3;
     
     var next = getNext();
-    if(!next)
+    if (!next)
       break;
     
-    if(dx !== next[0] || dy !== next[1]) {
+    if (dx !== next[0] || dy !== next[1]) {
       polygon.push(curX, curY);
       dx = next[0];
       dy = next[1];
@@ -195,17 +198,40 @@ ComputeShapeOutside.prototype.computeRawContour = function(mask) {
 };
 
 ComputeShapeOutside.prototype.computePolygon = function(contour) {
-  var epsilon = this.options.padding / 5; // TODO: param
-  var simplified = contour.simplify(epsilon);
+  var epsilon = this.options.padding / 5; // TODO: param?
+  var polygon = contour.simplify(epsilon);
+  var wPadding = this.wPadding;
   
-  if(this.options.clipLeft || this.options.clipRight || this.options.clipTop || this.options.clipBottom) {
-    var minX = this.options.clipLeft ? this.wPadding : 0;
-    var maxX = this.wWidth - 1 - (this.options.clipRight? this.wPadding : 0);
-    var minY = this.options.clipTop ? this.wPadding : 0;
-    var maxY = this.wHeight - 1 - (this.options.clipBottom ? this.wPadding : 0);
-    return simplified.clip(minX, maxX, minY, maxY);
-  } else
-    return simplified;
+  // a bit like https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+  var curWidth = this.wWidth;
+  var curHeight = this.wHeight;
+  if (this.options.clipLeft) {
+    polygon = polygon.clip(wPadding, 0, wPadding, curHeight, function(x, y) {
+      return x >= wPadding;
+    }).translate(-wPadding, 0);
+    curWidth -= wPadding;
+  }
+  if (this.options.clipRight) {
+    var maxX = curWidth - 1 - wPadding;
+    polygon = polygon.clip(maxX, 0, maxX, curHeight, function(x, y) {
+      return x <= maxX;
+    });
+    curWidth -= wPadding;
+  }
+  if (this.options.clipTop) {
+    polygon = polygon.clip(0, wPadding, curWidth, wPadding, function(x, y) {
+      return y >= wPadding;
+    }).translate(0, -wPadding);
+    curHeight -= wPadding;
+  }
+  if (this.options.clipBottom) {
+    var maxY = curHeight - 1 - wPadding;
+    polygon = polygon.clip(0, maxY, curWidth, maxY, function(x, y) {
+      return y <= maxY;
+    });
+    curHeight -= wPadding;
+  }
+  return polygon;
 };
 
 function Mask() {
@@ -229,7 +255,7 @@ PointList.prototype._extend = function(newLength) {
 
 PointList.prototype.push = function(x, y) {
   var length = this.length;
-  if(this.x.length === length)
+  if (this.x.length === length)
     this._extend(length < 65536 ? length * 2 : 65536);
   this.x[length] = x;
   this.y[length] = y;
@@ -238,19 +264,28 @@ PointList.prototype.push = function(x, y) {
 
 PointList.prototype.concat = function(other) {
   var newLength = this.length + other.length;
-  if(this.x.length <= newLength)
+  if (this.x.length <= newLength)
     this._extend(newLength);
   this.x.set(other.x.slice(0, other.length), this.length);
   this.y.set(other.y.slice(0, other.length), this.length);
   this.length = newLength;
+  return this;
+};
+
+PointList.prototype.translate = function(dx, dy) {
+  for (var i = 0; i < this.length; i++) {
+    this.x[i] += dx;
+    this.y[i] += dy;
+  }
+  return this;
 };
 
 PointList.prototype.forEach = function(callback, begin, end) {
   begin = begin || 0;
   end = end || this.length;
-  for(var i = begin; i < this.length; i++) {
+  for (var i = begin; i < this.length; i++) {
     var shouldStop = callback(this.x[i], this.y[i], i);
-    if(shouldStop)
+    if (shouldStop)
       return;
   }
 };
@@ -269,13 +304,28 @@ function Polygon(length) {
 };
 Polygon.prototype = PointList.prototype;
 
-Polygon.prototype.clip = function(minX, maxX, minY, maxY) {
-  // turns out this has a name
-  // https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
-  if(minX) {
-    
+Polygon.prototype.clip = function(x1, y1, x2, y2, isInFunc) {
+  var result = new Polygon();
+  var maxI = this.length - 1;
+  var lastX = this.x[maxI];
+  var lastY = this.y[maxI];
+  var lastIsIn = isInFunc(lastX, lastY);
+  for (var i = 0; i <= maxI; i++) {
+    var x = this.x[i];
+    var y = this.y[i];
+    var isIn = isInFunc(x, y);
+    if(isIn ^ lastIsIn) {
+      // TODO curry function
+      var intersect = intersectLines(x1, y1, x2, y2, lastX, lastY, x, y);
+      result.push(intersect[0], intersect[1]);
+    }
+    if(isIn)
+      result.push(x, y);
+    lastX = x;
+    lastY = y;
+    lastIsIn = isIn;
   }
-  return this;
+  return result;
 };
 
 Polygon.prototype.simplify = function(epsilon) {
@@ -285,8 +335,8 @@ Polygon.prototype.simplify = function(epsilon) {
   // remove very short lines left by douglasPeucker for some reason
   var result = new Polygon();
   result.push(polygon.x[0], polygon.y[0]);
-  for(var i = 1; i < polygon.length; i++) {
-    if(squareDistance(polygon.x[i], polygon.y[i], polygon.x[i - 1], polygon.y[i - 1]) >= epsilon2)
+  for (var i = 1; i < polygon.length; i++) {
+    if (squareDistance(polygon.x[i], polygon.y[i], polygon.x[i - 1], polygon.y[i - 1]) >= epsilon2)
       result.push(polygon.x[i], polygon.y[i]);
   }
   return result;
@@ -294,22 +344,22 @@ Polygon.prototype.simplify = function(epsilon) {
 
 Polygon.prototype._douglasPeucker = function(epsilon2) {
   // https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
-  if(this.length <= 3)
+  if (this.length <= 3)
     return this;
   
   // Find the point with the maximum distance
   var maxI = this.length - 1, maxDistance2 = 0, maxDistanceIndex = 0;
-  for(var i = 1; i < maxI; i++) {
+  for (var i = 1; i < maxI; i++) {
     // TODO curry function to take x
     var distance2 = squareDistanceToLine(this.x[i], this.y[i], this.x[0], this.y[0], this.x[maxI], this.y[maxI]);
-    if(distance2 > maxDistance2) {
+    if (distance2 > maxDistance2) {
       maxDistance2 = distance2;
       maxDistanceIndex = i;
     }
   }
   
   // If max distance is greater than epsilon, recursively simplify
-  if(maxDistance2 <= epsilon2) {
+  if (maxDistance2 <= epsilon2) {
     var result = new Polygon(2);
     result.push(this.x[0], this.y[0]);
     result.push(this.x[maxI], this.y[maxI]);
@@ -333,4 +383,18 @@ function squareDistanceToLine(x, y, x1, y1, x2, y2) {
 function squareDistance(x1, y1, x2, y2) {
   var dx = x2 - x1, dy = y2 - y1;
   return dx * dx + dy * dy;
+}
+
+function intersectLines(x1, y1, x2, y2, x3, y3, x4, y4) {
+  // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
+  var dx12 = x1 - x2;
+  var dy12 = y1 - y2;
+  var dx34 = x3 - x4;
+  var dy34 = y3 - y4;
+  var cross12 = x1 * y2 - x2 * y1;
+  var cross34 = x3 * y4 - x4 * y3;
+  var denominator = dx12 * dy34 - dx34 * dy12;
+  var ix = Math.round((cross12 * dx34 - cross34 * dx12) / denominator);
+  var iy = Math.round((cross12 * dy34 - cross34 * dy12) / denominator);
+  return [ix, iy];
 }

@@ -5,14 +5,23 @@
 (function() {
   var worker = new Worker('./js/worker.js');
   worker.addEventListener('message', function(e) {
+    var position = e.data.options.position;
+    var padding = e.data.options.padding
+    var baseImageStyleArr = ['float: ' + position + ';'];
+    if(position === 'left')
+      baseImageStyleArr.push('margin-right: ' + padding + 'px;');
+    if(position === 'right')
+      baseImageStyleArr.push('margin-left: ' + padding + 'px;');
+    baseImageStyleArr.push('margin-bottom: ' + padding + 'px;');
+    baseImageStyleArr.push('shape-outside: polygon(' + e.data.shapeOutsidePolygon + ');');
+    var baseImageStyle = baseImageStyleArr.join('\r\n');
+    
     var width = e.data.pixelData.width;
     var height = e.data.pixelData.height;
-    var shapeOutsideStyle = 'shape-outside: polygon(' + e.data.shapeOutsidePolygon + ');';
-    
     document.getElementById('output').style.display = 'block';
     
     var result = document.getElementById('result');
-    result.innerText = shapeOutsideStyle;
+    result.value = baseImageStyle;
     setTimeout(function() {
       // autoresize on next tick
       result.style.height = '5px';
@@ -25,11 +34,7 @@
     img.src = document.forms.frm.elements.url.value;
     img.width = width;
     img.height = height;
-    var baseStyle = 'max-width: 25%; height: auto; margin-bottom: ' + e.data.options.padding + 'px; ' + shapeOutsideStyle;
-    if(e.data.options.position === 'right')
-      img.style = 'float:right; margin-left: ' + e.data.options.padding + 'px; ' + baseStyle;
-    if(e.data.options.position === 'left')
-      img.style = 'float:left; margin-right: ' + e.data.options.padding + 'px; ' + baseStyle;
+    img.style = 'max-width: 25%; height: auto;' + baseImageStyle;
     preview.appendChild(img);
     var span = document.createElement('span');
     span.innerHTML = 

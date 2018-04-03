@@ -77,8 +77,7 @@
     addCanvas(e.data.pixelData);
     addCanvas(e.data.rawMaskData);
     addCanvas(e.data.paddedMaskData);
-    addCanvas(e.data.pixelData, e.data.contour);
-    addCanvas(e.data.pixelData, e.data.simplifiedContour);
+    addCanvas(e.data.pixelData, e.data.polygon);
   });
   
   var getImageData = function(url, options, callback) {

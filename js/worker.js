@@ -18,6 +18,10 @@ function ComputeShapeOutside(imageData, options) {
   options.useAlpha = options.useAlpha || false;
   options.threshold = options.threshold || 250;
   options.padding = options.padding || 20;
+  options.clipLeft = options.clipLeft ? options.clipLeft : true;
+  options.clipRight = options.clipRight ? options.clipRight : true;
+  options.clipTop = options.clipTop ? options.clipTop : true;
+  options.clipBottom = options.clipBottom ? options.clipBottom : true;
   this.options = options;
   
   this.wPadding = options.padding + 1;
@@ -28,8 +32,8 @@ function ComputeShapeOutside(imageData, options) {
 ComputeShapeOutside.prototype.run = function() {
   var rawMask = this.computeRawMask();
   var paddedMask = this.computePaddedMask(rawMask);
-  var contour = this.computeContour(paddedMask);
-  var simplifiedContour = this.simplifyContour(contour);
+  var rawContour = this.computeRawContour(paddedMask);
+  var polygon = this.computePolygon(contour);
   self.postMessage({
     options: this.options,
     width: this.width,
@@ -37,8 +41,7 @@ ComputeShapeOutside.prototype.run = function() {
     pixelData: new ImageData(this.pixelData, this.width, this.height),
     rawMaskData: this.getImageDataFromGrid(rawMask),
     paddedMaskData: this.getImageDataFromGrid(paddedMask),
-    contour: contour,
-    simplifiedContour: simplifiedContour,
+    polygon: polygon,
   });
 };
 
@@ -145,7 +148,7 @@ ComputeShapeOutside.prototype.computePaddedMask = function(mask) {
   return grid;
 };
 
-ComputeShapeOutside.prototype.computeContour = function(mask) {
+ComputeShapeOutside.prototype.computeRawContour = function(mask) {
   var wPadding = this.wPadding;
   var polygon = new Polygon();
   var curX, curY;
@@ -191,9 +194,18 @@ ComputeShapeOutside.prototype.computeContour = function(mask) {
   return polygon;
 };
 
-ComputeShapeOutside.prototype.simplifyContour = function(contour) {
+ComputeShapeOutside.prototype.computePolygon = function(contour) {
   var epsilon = this.options.padding / 5; // TODO: param
-  return contour.simplify(epsilon);
+  var simplified = contour.simplify(epsilon);
+  
+  if(this.options.clipLeft || this.options.clipRight || this.options.clipTop || this.options.clipBottom) {
+    var minX = this.options.clipLeft ? this.wPadding : 0;
+    var maxX = this.wWidth - 1 - (this.options.clipRight? this.wPadding : 0);
+    var minY = this.options.clipTop ? this.wPadding : 0;
+    var maxY = this.wHeight - 1 - (this.options.clipBottom ? this.wPadding : 0);
+    return simplified.clip(minX, maxX, minY, maxY);
+  } else
+    return simplified;
 };
 
 function Mask() {
@@ -233,9 +245,14 @@ PointList.prototype.concat = function(other) {
   this.length = newLength;
 };
 
-PointList.prototype.forEach = function(callback) {
-  for(var i = 0; i < this.length; i++)
-    callback(this.x[i], this.y[i], i);
+PointList.prototype.forEach = function(callback, begin, end) {
+  begin = begin || 0;
+  end = end || this.length;
+  for(var i = begin; i < this.length; i++) {
+    var shouldStop = callback(this.x[i], this.y[i], i);
+    if(shouldStop)
+      return;
+  }
 };
 
 PointList.prototype.slice = function(begin, end) {
@@ -252,14 +269,11 @@ function Polygon(length) {
 };
 Polygon.prototype = PointList.prototype;
 
-Polygon.prototype.crop = function(minX, maxX, minY, maxY) {
-  var result = new Polygon();
-  var isInner = function(i) {
-    // direct access to PointList, but it's fine
-    return this.x[i] >= minX && this.x[i] <= maxX && this.y[i] >= minY && this.y[i] <= maxY;
-  };
-  for(var i = 0; i < this.length; i++) {
-    // 
+Polygon.prototype.clip = function(minX, maxX, minY, maxY) {
+  // turns out this has a name
+  // https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+  if(minX) {
+    
   }
   return this;
 };

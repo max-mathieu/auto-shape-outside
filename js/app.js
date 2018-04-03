@@ -7,14 +7,7 @@
   worker.addEventListener('message', function(e) {
     var width = e.data.pixelData.width;
     var height = e.data.pixelData.height;
-    // TODO: move to worker.js
-    var polygon = [];
-    for (var i = 0; i < e.data.polygon.length; i++) {
-      var xp = (e.data.polygon.x[i] / (width-1) * 100).toFixed(1) + '%';
-      var yp = (e.data.polygon.y[i] / (height-1) * 100).toFixed(1) + '%';
-      polygon.push(xp + ' ' + yp);
-    }
-    var shapeOutsideStyle = 'shape-outside: polygon(' + polygon.join(', ') + ');';
+    var shapeOutsideStyle = 'shape-outside: polygon(' + e.data.shapeOutsidePolygon + ');';
     
     document.getElementById('output').style.display = 'block';
     
@@ -28,16 +21,16 @@
     
     var preview = document.getElementById('preview');
     preview.innerHTML = '';
-    var imgL = document.createElement('img');
-    var imgR = document.createElement('img');
-    imgL.src = imgR.src = document.forms.frm.elements.url.value;
-    imgL.width = imgR.width = width;
-    imgL.height = imgR.height = height;
-    var baseStyle = 'max-width: 25%; height: auto; ' + shapeOutsideStyle;
-    imgL.style = 'float:left; ' + baseStyle;
-    imgR.style = 'float:right; ' + baseStyle;
-    preview.appendChild(imgL);
-    preview.appendChild(imgR);
+    var img = document.createElement('img');
+    img.src = document.forms.frm.elements.url.value;
+    img.width = width;
+    img.height = height;
+    var baseStyle = 'max-width: 25%; height: auto; margin-bottom: ' + e.data.options.padding + 'px; ' + shapeOutsideStyle;
+    if(e.data.options.position === 'right')
+      img.style = 'float:right; margin-left: ' + e.data.options.padding + 'px; ' + baseStyle;
+    if(e.data.options.position === 'left')
+      img.style = 'float:left; margin-right: ' + e.data.options.padding + 'px; ' + baseStyle;
+    preview.appendChild(img);
     var span = document.createElement('span');
     span.innerHTML = 
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam quis ante nulla. Etiam imperdiet, sapien non imperdiet hendrerit, ex nisl bibendum sapien, pulvinar blandit massa magna ut ipsum. Praesent a blandit velit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean tempus diam quis risus posuere lacinia. Mauris pellentesque quam sem, ut fermentum dolor sagittis vitae. Aenean elementum mauris at diam eleifend vehicula. Pellentesque non ipsum sagittis, vehicula erat sit amet, ultricies mi. Aliquam luctus vel sem maximus pretium. Ut suscipit consectetur sollicitudin. Maecenas commodo congue massa at vestibulum. Duis non lacinia sapien. Aliquam eu egestas massa. Duis et risus mauris. Vivamus id metus luctus, porttitor metus ac, interdum sapien.' +
@@ -78,7 +71,8 @@
     addCanvas(e.data.pixelData);
     addCanvas(e.data.rawMaskData);
     addCanvas(e.data.paddedMaskData);
-    addCanvas(e.data.pixelData, e.data.polygon);
+    addCanvas(e.data.rawMaskData, e.data.rawContour);
+    addCanvas(e.data.rawMaskData, e.data.polygon);
   });
   
   var getImageData = function(url, options, callback) {
@@ -107,6 +101,7 @@
         padding: parseInt(this.elements.padding.value),
         targetWidth: parseInt(this.elements.targetWidth.value),
         targetHeight: parseInt(this.elements.targetHeight.value),
+        position: this.elements.position.value,
       };
       getImageData(url, options, function(imageData) {
         worker.postMessage({

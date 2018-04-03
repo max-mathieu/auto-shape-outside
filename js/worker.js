@@ -20,10 +20,6 @@ function ComputeShapeOutside(imageData, options) {
   options.useAlpha = options.useAlpha || false;
   options.threshold = options.threshold || 250;
   options.padding = options.padding || 20;
-  options.clipLeft = options.clipLeft ? options.clipLeft : true;
-  options.clipRight = options.clipRight ? options.clipRight : true;
-  options.clipTop = options.clipTop ? options.clipTop : true;
-  options.clipBottom = options.clipBottom ? options.clipBottom : true;
   this.options = options;
   
   this.wPadding = options.padding + 1;
@@ -32,35 +28,37 @@ function ComputeShapeOutside(imageData, options) {
 }
 
 ComputeShapeOutside.prototype.run = function() {
-  var rawMask = this.computeRawMask();
-  var paddedMask = this.computePaddedMask(rawMask);
-  var rawContour = this.computeRawContour(paddedMask);
-  var polygon = this.computePolygon(rawContour);
+  var rawMask = this._computeRawMask();
+  var paddedMask = this._computePaddedMask(rawMask);
+  var rawContour = this._computeRawContour(paddedMask);
+  var polygon = this._computePolygon(rawContour);
   self.postMessage({
     options: this.options,
     width: this.width,
     height: this.height,
     pixelData: new ImageData(this.pixelData, this.width, this.height),
-    rawMaskData: this.getImageDataFromGrid(rawMask),
-    paddedMaskData: this.getImageDataFromGrid(paddedMask),
+    rawMaskData: this._getImageDataFromGrid(rawMask),
+    paddedMaskData: this._getImageDataFromGrid(paddedMask),
+    rawContour: rawContour,
     polygon: polygon,
+    shapeOutsidePolygon: this._getCSS(polygon),
   });
 };
 
-ComputeShapeOutside.prototype.getNewGrid = function() {
+ComputeShapeOutside.prototype._getNewGrid = function() {
   var grid = new Array(this.wWidth);
   for (var x = 0; x < this.wWidth; x++)
     grid[x] = new Uint8Array(this.wHeight);
   return grid;
 };
 
-ComputeShapeOutside.prototype.getImageDataFromGrid = function(grid) {
+ComputeShapeOutside.prototype._getImageDataFromGrid = function(grid) {
   var imageData = new Uint8ClampedArray(this.wWidth * this.wHeight * 4);
   var i = 0;
   for (var y = 0; y < this.wHeight; y++) {
     for (var x = 0; x < this.wWidth; x++) {
-      var r = grid[x][y] > 0 ? 255 : 0;
-      var gb = grid[x][y] === 1 ? r : 0;
+      var r = grid[x][y] === 1 ? 0 : 255;
+      var gb = grid[x][y] > 1 ? 0 : r;
       imageData[i++] = r;
       imageData[i++] = gb;
       imageData[i++] = gb;
@@ -70,12 +68,12 @@ ComputeShapeOutside.prototype.getImageDataFromGrid = function(grid) {
   return new ImageData(imageData, this.wWidth, this.wHeight);
 };
   
-ComputeShapeOutside.prototype.computeRawMask = function() {
+ComputeShapeOutside.prototype._computeRawMask = function() {
   // make a 2D grid with values, using the threshold
   var useAlpha = this.options.alpha, threshold = this.options.threshold;
   var pixelData = this.pixelData;
   var start = this.wPadding;
-  var grid = this.getNewGrid();
+  var grid = this._getNewGrid();
   var imgX = 0, x = start, y = start;
   for (var p = 0; p < pixelData.length; p += 4) {
     if (useAlpha) {
@@ -96,9 +94,9 @@ ComputeShapeOutside.prototype.computeRawMask = function() {
   return grid;
 };
 
-ComputeShapeOutside.prototype.computePaddedMask = function(mask) {
+ComputeShapeOutside.prototype._computePaddedMask = function(mask) {
   var padding = this.options.padding;
-  var grid = this.getNewGrid();
+  var grid = this._getNewGrid();
   // flag edge points as 2 and maintain a list
   var edges = new PointList();
   var maxX = this.wWidth - 1;
@@ -108,7 +106,7 @@ ComputeShapeOutside.prototype.computePaddedMask = function(mask) {
     return g[x-1][y] && g[x+1][y] && g[x][y-1] && g[x][y+1];
   };
   // copy mask in grid and find initial edges
-  var foundEdgesGrid = this.getNewGrid();
+  var foundEdgesGrid = this._getNewGrid();
   for (var x = 0; x <= maxX; x++) {
     for (var y = 0; y <= maxY; y++) {
       if (!mask[x][y])
@@ -151,7 +149,7 @@ ComputeShapeOutside.prototype.computePaddedMask = function(mask) {
   return grid;
 };
 
-ComputeShapeOutside.prototype.computeRawContour = function(mask) {
+ComputeShapeOutside.prototype._computeRawContour = function(mask) {
   var wPadding = this.wPadding;
   var polygon = new Polygon();
   var curX, curY;
@@ -197,41 +195,65 @@ ComputeShapeOutside.prototype.computeRawContour = function(mask) {
   return polygon;
 };
 
-ComputeShapeOutside.prototype.computePolygon = function(contour) {
-  var epsilon = this.options.padding / 5; // TODO: param?
-  var polygon = contour.simplify(epsilon);
+ComputeShapeOutside.prototype._computePolygon = function(contour) {
+  var epsilon = this.options.padding / 5; // TODO: cap and/or param
+  return contour.simplify(epsilon);
+};
+
+ComputeShapeOutside.prototype._getCSS = function(polygon) {
+  var position = this.options.position;
+  if (position === 'left')
+    return this._clipAndGetCSS(polygon, true, false, true, false);
+  if (position === 'right')
+    return this._clipAndGetCSS(polygon, false, true, true, false);
+
+  return this._clipAndGetCSS(polygon, false, false, true, true);
+}
+
+ComputeShapeOutside.prototype._clipAndGetCSS = function(polygon, clipLeft, clipRight, clipTop, clipBottom) {
   var wPadding = this.wPadding;
   
   // a bit like https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+  var clipped = polygon;
   var curWidth = this.wWidth;
   var curHeight = this.wHeight;
-  if (this.options.clipLeft) {
-    polygon = polygon.clip(wPadding, 0, wPadding, curHeight, function(x, y) {
+  if (clipLeft) {
+    clipped = clipped.clip(wPadding, 0, wPadding, curHeight, function(x, y) {
       return x >= wPadding;
     }).translate(-wPadding, 0);
     curWidth -= wPadding;
   }
-  if (this.options.clipRight) {
+  if (clipRight) {
     var maxX = curWidth - 1 - wPadding;
-    polygon = polygon.clip(maxX, 0, maxX, curHeight, function(x, y) {
+    clipped = clipped.clip(maxX, 0, maxX, curHeight, function(x, y) {
       return x <= maxX;
     });
     curWidth -= wPadding;
   }
-  if (this.options.clipTop) {
-    polygon = polygon.clip(0, wPadding, curWidth, wPadding, function(x, y) {
+  if (clipTop) {
+    clipped = clipped.clip(0, wPadding, curWidth, wPadding, function(x, y) {
       return y >= wPadding;
     }).translate(0, -wPadding);
     curHeight -= wPadding;
   }
-  if (this.options.clipBottom) {
+  if (clipBottom) {
     var maxY = curHeight - 1 - wPadding;
-    polygon = polygon.clip(0, maxY, curWidth, maxY, function(x, y) {
+    clipped = clipped.clip(0, maxY, curWidth, maxY, function(x, y) {
       return y <= maxY;
     });
     curHeight -= wPadding;
   }
-  return polygon;
+  
+  // scale to %
+  var result = [];
+  var xScale = 100 / (curWidth - 1);
+  var yScale = 100 / (curHeight - 1);
+  for (var i = 0; i < clipped.length; i++) {
+    var xp = (clipped.x[i] * xScale).toFixed(0) + '%';
+    var yp = (clipped.y[i] * yScale).toFixed(0) + '%';
+    result.push(xp + ' ' + yp);
+  }
+  return result.join(', ');
 };
 
 function Mask() {

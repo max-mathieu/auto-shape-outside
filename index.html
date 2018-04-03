@@ -4,15 +4,27 @@
   <title>shape-outside generator</title>
   <meta charset="utf-8">
   <style>
-    body, input, button {
+    body, input, button, textarea, select {
       background: #fff;
       font-family: Arial, sans-serif;
       font-size: 14px;
+      box-sizing: border-box;
     }
-    input, button, textarea {
+    /* TODO: use flex */
+    label {
+      display: block;
+      margin: 2px;
+    }
+    label span {
+      display: inline-block;
+      width: 100px;
+    }
+    input, button, textarea, select {
       border:1px solid #ccc;
       border-radius: 2px;
       padding: 5px;
+      width: 100px;
+      height: 26px;
     }
     textarea {
       box-sizing: border-box;
@@ -63,7 +75,14 @@
       <span>Padding</span>
       <input name="padding" type="number" value="20">
     </label>
-    <button>Load</button>
+    <label>
+      <span>Position</span>
+      <select name="position">
+        <option value="left">float: left</option>
+        <option value="right">float: right</option>
+      </select>
+    </label>
+    <button>Generate</button>
   </div>
   <div id="output" style="display: none">
     <h3>Style to use</h3>

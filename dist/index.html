@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>shape-outside generator</title>
+  <meta charset="utf-8">
+  <style>
+    body, input, button, textarea, select {
+      background: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    /* TODO: use flex */
+    label {
+      display: block;
+      margin: 2px;
+    }
+    label span {
+      display: inline-block;
+      width: 100px;
+    }
+    input, button, textarea, select {
+      border:1px solid #ccc;
+      border-radius: 2px;
+      padding: 5px;
+      width: 100px;
+      height: 26px;
+    }
+    textarea {
+      box-sizing: border-box;
+      display: block;
+      width: 98%;
+      margin: 1%;
+      font-family: monospace;
+      font-size: 18px;
+      resize: none;
+      overflow: hidden;
+      min-height: 40px;
+    }
+    input#url {
+      width: 600px;
+    }
+    button {
+      border: none;
+      background: #696;
+      color: #fff;
+      padding: 5px 20px;
+      cursor: pointer;
+    }
+    canvas {
+      width: 19%;
+      margin: .5%;
+    }
+    h3 {
+      clear: both;
+      margin-top: 2em;
+    }
+  </style>
+</head>
+<body>
+  <form id="frm">
+    <label>
+      <span>Url</span>
+      <input id="url" name="url" type="text" value="https://i.collage.com/image.php?url=https%3A%2F%2Fi.collage.com%2Fproducts%2Fblankets%2FTextures%2F2018%2Ftexture_fleece2.jpg&maxsize=400&quality=100" placeholder="Image URL">
+    </label>
+    <label>
+      <span>Target Width</span>
+      <input name="targetWidth" type="number" value="">
+    </label>
+    <label>
+      <span>Target Height</span>
+      <input name="targetHeight" type="number" value="">
+    </label>
+    <label>
+      <span>Padding</span>
+      <input name="padding" type="number" value="20">
+    </label>
+    <label>
+      <span>Position</span>
+      <select name="position">
+        <option value="left">float: left</option>
+        <option value="right">float: right</option>
+      </select>
+    </label>
+    <button>Generate</button>
+  </div>
+  <div id="output" style="display: none">
+    <h3>Style to use</h3>
+    <textarea id="result" onclick="this.select()"></textarea>
+    <h3>Preview</h3>
+    <div id="preview"></div>
+    <h3>Debug</h3>
+    <div id="debug"></div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

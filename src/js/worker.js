@@ -6,5 +6,6 @@ import ComputeShapeOutside from './classes/ComputeShapeOutside';
 
 self.addEventListener('message', (e) => {
   const { imageData, options } = e.data;
-  return (new ComputeShapeOutside(imageData, options)).run();
+  const result = (new ComputeShapeOutside(imageData, options)).run();
+  self.postMessage(result);
 });

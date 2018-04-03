@@ -5,7 +5,7 @@ export default class ComputeShapeOutside {
   constructor(imageData, options) {
     this.width = imageData.width;
     this.height = imageData.height;
-    this.pixelData = imageData.data;
+    this.imageData = imageData.data;
     options = options || {};
     options.useAlpha = options.useAlpha || false;
     options.threshold = options.threshold || 250;
@@ -13,8 +13,8 @@ export default class ComputeShapeOutside {
     this.options = options;
 
     this.wPadding = options.padding + 1;
-    this.wWidth = imageData.width + 2 * this.wPadding;
-    this.wHeight = imageData.height + 2 * this.wPadding;
+    this.wWidth = this.width + (2 * this.wPadding);
+    this.wHeight = this.height + (2 * this.wPadding);
   }
 
   run() {
@@ -22,17 +22,17 @@ export default class ComputeShapeOutside {
     const paddedMask = this._computePaddedMask(rawMask);
     const rawContour = this._computeRawContour(paddedMask);
     const polygon = this._computePolygon(rawContour);
-    self.postMessage({
+    return {
       options: this.options,
       width: this.width,
       height: this.height,
-      pixelData: new ImageData(this.pixelData, this.width, this.height),
+      pixelData: new ImageData(this.imageData, this.width, this.height),
       rawMaskData: this._getImageDataFromGrid(rawMask),
       paddedMaskData: this._getImageDataFromGrid(paddedMask),
       rawContour,
       polygon,
       shapeOutsidePolygon: this._getCSS(polygon),
-    });
+    };
   }
 
   _getNewGrid() {
@@ -59,11 +59,11 @@ export default class ComputeShapeOutside {
 
   _computeRawMask() {
     // make a 2D grid with values, using the threshold
-    const useAlpha = this.options.alpha;
-    const threshold = this.options.threshold;
-    const pixelData = this.pixelData;
+    const { useAlpha, threshold } = this.options;
+    const pixelData = this.imageData;
     const start = this.wPadding;
     const grid = this._getNewGrid();
+
     let imgX = 0;
     let x = start;
     let y = start;
@@ -72,7 +72,9 @@ export default class ComputeShapeOutside {
         grid[x][y] = pixelData[p + 3] < threshold ? 0 : 1;
       } else {
         // compute luminance
-        const l = 0.2126 * pixelData[p] + 0.7152 * pixelData[p + 1] + 0.0722 * pixelData[p + 2];
+        const l = (0.2126 * pixelData[p]) +
+                  (0.7152 * pixelData[p + 1]) +
+                  (0.0722 * pixelData[p + 2]);
         grid[x][y] = l > threshold ? 0 : 1;
       }
       x++;
@@ -87,13 +89,13 @@ export default class ComputeShapeOutside {
   }
 
   _computePaddedMask(mask) {
-    const padding = this.options.padding;
+    const { padding } = this.options;
     const grid = this._getNewGrid();
     // flag edge points as 2 and maintain a list
     let edges = new PointList();
     const maxX = this.wWidth - 1;
     const maxY = this.wHeight - 1;
-    const wPadding = this.wPadding;
+
     const isInner = (g, x, y) => g[x - 1][y] && g[x + 1][y] && g[x][y - 1] && g[x][y + 1];
     // copy mask in grid and find initial edges
     const foundEdgesGrid = this._getNewGrid();
@@ -110,27 +112,31 @@ export default class ComputeShapeOutside {
         }
       }
     }
+
+    // TODO: move to grid class
+    const isInGrid = (x, y) => isInner(grid, x, y);
+    const isNewEdge = (x, y) => {
+      if (!foundEdgesGrid[x][y]) {
+        foundEdgesGrid[x][y] = 1;
+        return true;
+      }
+      return false;
+    };
+
+    // expand the edges, 1 pixel at a time
     for (let i = 0; i < padding; i++) {
-      // update edges
-      var candidateEdges = new PointList();
-      var addCandidateEdge = function (x, y, force) {
-        if (!foundEdgesGrid[x][y]) {
-          candidateEdges.push(x, y);
-          foundEdgesGrid[x][y] = 1;
-        }
-      };
+      const candidateEdges = new PointList();
+
       edges.forEach((x, y) => {
-        addCandidateEdge(x - 1, y);
-        addCandidateEdge(x + 1, y);
-        addCandidateEdge(x, y - 1);
-        addCandidateEdge(x, y + 1);
+        candidateEdges.pushIf(x - 1, y, isNewEdge);
+        candidateEdges.pushIf(x + 1, y, isNewEdge);
+        candidateEdges.pushIf(x, y - 1, isNewEdge);
+        candidateEdges.pushIf(x, y + 1, isNewEdge);
       });
 
-      edges = new PointList();
-      candidateEdges.forEach((x, y) => {
-        if (!isInner(grid, x, y)) { edges.push(x, y); }
-      });
+      edges = candidateEdges.filter(isInGrid);
     }
+
     // store edges on the grid for next step
     edges.forEach((x, y) => {
       grid[x][y] = 2;
@@ -139,48 +145,52 @@ export default class ComputeShapeOutside {
   }
 
   _computeRawContour(mask) {
-    const wPadding = this.wPadding;
     const polygon = new Polygon();
-    let curX;
-    let curY;
     // find starting point
-    let maxX = this.wWidth - 1,
-      maxY = this.wHeight - 1;
+    const maxX = this.wWidth - 1;
+    const maxY = this.wHeight - 1;
+
     const getFirst = () => {
       for (let x = 0; x <= maxX; x++) {
         for (let y = 0; y <= maxY; y++) {
-          if (mask[x][y] === 2) return [x, y];
+          if (mask[x][y] === 2) {
+            return [x, y];
+          }
         }
       }
+      return [0, 0]; // just in case
     };
-    const first = getFirst();
-    curX = first[0];
-    curY = first[1];
+
+    let [curX, curY] = getFirst();
+    mask[curX][curY] = 3;
 
     const getNext = () => {
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
-          let newX = curX + dx,
-            newY = curY + dy;
-          if (mask[newX][newY] === 2) { return [dx, dy]; }
+          const newX = curX + dx;
+          const newY = curY + dy;
+          if (mask[newX][newY] === 2) {
+            return [dx, dy];
+          }
         }
       }
+      return null;
     };
+    let next = getNext();
     let dx = 0;
     let dy = 0;
-    while (true) {
-      mask[curX][curY] = 3;
-
-      const next = getNext();
-      if (!next) break;
-
-      if (dx !== next[0] || dy !== next[1]) {
+    while (next) {
+      const [newDx, newDy] = next;
+      if (dx !== newDx || dy !== newDy) {
         polygon.push(curX, curY);
-        dx = next[0];
-        dy = next[1];
+        dx = newDx;
+        dy = newDy;
       }
       curX += dx;
       curY += dy;
+
+      mask[curX][curY] = 3;
+      next = getNext();
     }
     return polygon;
   }
@@ -202,28 +212,34 @@ export default class ComputeShapeOutside {
   }
 
   _clipAndGetCSS(polygon, clipLeft, clipRight, clipTop, clipBottom) {
-    const wPadding = this.wPadding;
+    const { wPadding } = this;
 
     // a bit like https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
     let clipped = polygon;
     let curWidth = this.wWidth;
     let curHeight = this.wHeight;
     if (clipLeft) {
-      clipped = clipped.clip(wPadding, 0, wPadding, curHeight, (x, y) => x >= wPadding).translate(-wPadding, 0);
+      clipped = clipped
+        .clip(wPadding, 0, wPadding, curHeight, x => (x >= wPadding))
+        .translate(-wPadding, 0);
       curWidth -= wPadding;
     }
     if (clipRight) {
       const maxX = curWidth - 1 - wPadding;
-      clipped = clipped.clip(maxX, 0, maxX, curHeight, (x, y) => x <= maxX);
+      clipped = clipped
+        .clip(maxX, 0, maxX, curHeight, x => (x <= maxX));
       curWidth -= wPadding;
     }
     if (clipTop) {
-      clipped = clipped.clip(0, wPadding, curWidth, wPadding, (x, y) => y >= wPadding).translate(0, -wPadding);
+      clipped = clipped
+        .clip(0, wPadding, curWidth, wPadding, (x, y) => (y >= wPadding))
+        .translate(0, -wPadding);
       curHeight -= wPadding;
     }
     if (clipBottom) {
       const maxY = curHeight - 1 - wPadding;
-      clipped = clipped.clip(0, maxY, curWidth, maxY, (x, y) => y <= maxY);
+      clipped = clipped
+        .clip(0, maxY, curWidth, maxY, (x, y) => (y <= maxY));
       curHeight -= wPadding;
     }
 

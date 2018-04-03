@@ -4,8 +4,20 @@
   "description": "Generate shape-outside polygon from an image",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "eslint": "eslint . --fix",
+    "start": "http-server",
+    "webpack": "webpack"
   },
   "author": "Max Mathieu <maxence.mathieu@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.4",
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.10.0",
+    "webpack": "^4.4.1",
+    "webpack-cli": "^2.0.13"
+  }
 }

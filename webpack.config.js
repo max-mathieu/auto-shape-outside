@@ -2,11 +2,10 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    app: './src/app',
-    worker: './src/worker',
+    worker: './src/js/worker',
   },
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, 'dist/js'),
     filename: '[name].js',
   },
   module: {

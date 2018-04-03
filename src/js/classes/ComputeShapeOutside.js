@@ -1,3 +1,6 @@
+// BUG: marching squares improved to handle knots
+// TODO: add console debugging
+
 import PointList from './PointList';
 import Polygon from './Polygon';
 
@@ -37,7 +40,9 @@ export default class ComputeShapeOutside {
 
   _getNewGrid() {
     const grid = new Array(this.wWidth);
-    for (let x = 0; x < this.wWidth; x++) { grid[x] = new Uint8Array(this.wHeight); }
+    for (let x = 0; x < this.wWidth; x++) {
+      grid[x] = new Uint8Array(this.wHeight);
+    }
     return grid;
   }
 
@@ -114,7 +119,7 @@ export default class ComputeShapeOutside {
     }
 
     // TODO: move to grid class
-    const isInGrid = (x, y) => isInner(grid, x, y);
+    const notInGrid = (x, y) => !isInner(grid, x, y);
     const isNewEdge = (x, y) => {
       if (!foundEdgesGrid[x][y]) {
         foundEdgesGrid[x][y] = 1;
@@ -134,7 +139,7 @@ export default class ComputeShapeOutside {
         candidateEdges.pushIf(x, y + 1, isNewEdge);
       });
 
-      edges = candidateEdges.filter(isInGrid);
+      edges = candidateEdges.filter(notInGrid);
     }
 
     // store edges on the grid for next step

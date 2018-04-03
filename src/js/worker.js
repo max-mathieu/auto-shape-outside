@@ -1,5 +1,4 @@
-// BUG: marching squares improved to handle knots
-// TODO: add console debugging
+/* eslint no-restricted-globals: 0 */
 // TODO: test with multiple shapes
 
 import ComputeShapeOutside from './classes/ComputeShapeOutside';

@@ -25,7 +25,9 @@ export default class PointList {
   }
 
   pushIf(x, y, testFunc) {
-    if (testFunc(x, y)) { this.push(x, y); }
+    if (testFunc(x, y)) {
+      this.push(x, y);
+    }
   }
 
   concat(other) {
@@ -58,7 +60,7 @@ export default class PointList {
 
   slice(begin, end) {
     const length = end - begin;
-    const slice = new PointList(length);
+    const slice = new this.constructor(length);
     slice.x.set(this.x.slice(begin, end));
     slice.y.set(this.y.slice(begin, end));
     slice.length = length;
@@ -66,7 +68,7 @@ export default class PointList {
   }
 
   filter(filterFunc) {
-    const filtered = new PointList();
+    const filtered = new this.constructor();
     this.forEach((x, y) => {
       filtered.pushIf(x, y, filterFunc);
     });

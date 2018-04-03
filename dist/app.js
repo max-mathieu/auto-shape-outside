@@ -1,4 +1,4 @@
-// TODO: cleanup
+// TODO: cleanup and move to webpack with index.html
 // TODO: expose all options
 // TODO: make margin a %
 (function () {

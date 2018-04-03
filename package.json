@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "eslint": "eslint . --fix",
-    "start": "http-server",
-    "webpack": "webpack"
+    "future-start": "webpack-dev-server --watch --hot --progress",
+    "build": "webpack --mode=production --progress",
+    "start": "webpack --mode=development --watch --progress"
   },
   "author": "Max Mathieu <maxence.mathieu@gmail.com>",
   "license": "MIT",
@@ -16,8 +16,10 @@
     "babel-loader": "^7.1.4",
     "eslint": "^4.19.1",
     "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-loader": "^2.0.0",
     "eslint-plugin-import": "^2.10.0",
     "webpack": "^4.4.1",
-    "webpack-cli": "^2.0.13"
+    "webpack-cli": "^2.0.13",
+    "webpack-dev-server": "^3.1.1"
   }
 }

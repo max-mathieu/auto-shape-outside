@@ -107,7 +107,7 @@ form.addEventListener('submit', (e) => {
     targetWidth: parseInt(form.elements.targetWidth.value, 10),
     targetHeight: parseInt(form.elements.targetHeight.value, 10),
     position: form.elements.position.value,
-    useAlpha: true,
+    useAlpha: /\.(png|svg)$/.test(url),
   };
   getImageData(url, options, (imageData) => {
     worker.postMessage({

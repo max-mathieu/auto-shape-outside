@@ -1,4 +1,4 @@
-// TODO: cleanup and move to webpack with index.html
+// TODO: cleanup a bit
 // TODO: expose all options
 // TODO: make margin a %
 const worker = new Worker('./worker.js');
@@ -107,6 +107,7 @@ form.addEventListener('submit', (e) => {
     targetWidth: parseInt(form.elements.targetWidth.value, 10),
     targetHeight: parseInt(form.elements.targetHeight.value, 10),
     position: form.elements.position.value,
+    useAlpha: true,
   };
   getImageData(url, options, (imageData) => {
     worker.postMessage({

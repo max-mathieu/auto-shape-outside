@@ -1,6 +1,4 @@
 /* eslint no-restricted-globals: 0 */
-// TODO: test with multiple shapes
-
 import ComputeShapeOutside from './classes/ComputeShapeOutside';
 
 self.addEventListener('message', (e) => {

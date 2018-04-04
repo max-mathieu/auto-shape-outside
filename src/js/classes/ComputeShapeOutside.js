@@ -1,5 +1,6 @@
 // BUG: marching squares improved to handle knots
-// TODO: add console debugging
+// TODO: add debugging flag with stats
+// TODO: grid class
 
 import PointList from './PointList';
 import Polygon from './Polygon';

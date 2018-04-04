@@ -1,4 +1,6 @@
 const path = require('path');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = function(env, argv) {
   const eslintOptions = {};
@@ -15,11 +17,13 @@ module.exports = function(env, argv) {
   return {
     mode: 'development',
     entry: {
+      app: './src/js/app',
       worker: './src/js/worker',
     },
     output: {
-      path: path.resolve(__dirname, 'dist/js'),
+      path: path.resolve(__dirname, 'dist'),
       filename: '[name].js',
+      globalObject: 'self', // https://github.com/webpack/webpack/issues/6642
     },
     module: {
       rules: [
@@ -38,6 +42,15 @@ module.exports = function(env, argv) {
         }
       ],
     },
+    plugins: [
+      new webpack.NamedModulesPlugin(),
+      new HtmlWebpackPlugin({
+        filename: 'index.html',
+        template: 'src/index.html',
+        minify: {},
+        excludeChunks: [ 'worker' ],
+      })
+    ],
     stats: {
       colors: true,
     },

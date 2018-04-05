@@ -102,10 +102,10 @@ const getImageData = (url, options, callback) => {
 const form = document.forms.frm;
 form.addEventListener('submit', (e) => {
   const url = form.elements.url.value;
-  const options = {
+  const imageOptions = {
     targetWidth: parseInt(form.elements.targetWidth.value, 10),
   };
-  getImageData(url, options, (imageData) => {
+  getImageData(url, imageOptions, (imageData) => {
     const options = {
       position: form.elements.position.value,
       padding: imageData.width * (parseInt(form.elements.padding.value, 10) / 100),

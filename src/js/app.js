@@ -103,15 +103,15 @@ const form = document.forms.frm;
 form.addEventListener('submit', (e) => {
   const url = form.elements.url.value;
   const options = {
-    padding: parseInt(form.elements.padding.value, 10),
     targetWidth: parseInt(form.elements.targetWidth.value, 10),
-    targetHeight: parseInt(form.elements.targetHeight.value, 10),
-    position: form.elements.position.value,
-    useAlpha: /\.(png|svg)$/.test(url),
   };
   getImageData(url, options, (imageData) => {
+    const options = {
+      position: form.elements.position.value,
+      padding: imageData.width * (parseInt(form.elements.padding.value, 10) / 100),
+      useAlpha: /\.(png|svg)$/.test(url),
+    };
     worker.postMessage({
-      url,
       imageData,
       options,
     });

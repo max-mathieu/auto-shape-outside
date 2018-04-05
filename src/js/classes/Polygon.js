@@ -1,8 +1,10 @@
 import PointList from './PointList';
-import { intersectLines, squareDistance, squareDistanceToLine } from './MathUtils';
+import Line from './Line';
 
 export default class Polygon extends PointList {
   clip(x1, y1, x2, y2, isInFunc) {
+    const line = new Line(x1, y1, x2, y2);
+
     const result = new Polygon();
     const maxI = this.length - 1;
     let lastX = this.x[maxI];
@@ -13,11 +15,10 @@ export default class Polygon extends PointList {
       const y = this.y[i];
       const isIn = isInFunc(x, y);
       if (isIn ^ lastIsIn) {
-      // TODO curry function
-        const intersect = intersectLines(x1, y1, x2, y2, lastX, lastY, x, y);
+        const intersect = line.intersectWith(new Line(lastX, lastY, x, y));
         result.push(intersect[0], intersect[1]);
       }
-      if (isIn) { result.push(x, y); }
+      if (isIn) result.push(x, y);
       lastX = x;
       lastY = y;
       lastIsIn = isIn;
@@ -36,7 +37,8 @@ export default class Polygon extends PointList {
     let curY = polygon.y[maxI];
     result.push(curX, curY);
     polygon.forEach((x, y) => {
-      if (squareDistance(x, y, curX, curY) >= epsilon2) {
+      const line = new Line(curX, curY, x, y);
+      if (line.squareLength >= epsilon2) {
         curX = x;
         curY = y;
         result.push(curX, curY);
@@ -53,15 +55,11 @@ export default class Polygon extends PointList {
     const maxI = this.length - 1;
     let maxDistance2 = 0;
     let maxDistanceIndex = 0;
-    // TODO: internalize to compute some of the values once and for all?
-    const squareDistanceFunc = (x, y) => {
-      const d2 = squareDistanceToLine(this.x[0], this.y[0], this.x[maxI], this.y[maxI], x, y);
-      return d2;
-    };
+    const line = new Line(this.x[0], this.y[0], this.x[maxI], this.y[maxI]);
     for (let i = 1; i < maxI; i++) {
-      const d2 = squareDistanceFunc(this.x[i], this.y[i]);
-      if (d2 > maxDistance2) {
-        maxDistance2 = d2;
+      const distance2 = line.squareDistanceFrom(this.x[i], this.y[i]);
+      if (distance2 > maxDistance2) {
+        maxDistance2 = distance2;
         maxDistanceIndex = i;
       }
     }

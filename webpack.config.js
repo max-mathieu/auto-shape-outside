@@ -47,7 +47,6 @@ module.exports = function(env, argv) {
       new HtmlWebpackPlugin({
         filename: 'index.html',
         template: 'src/index.html',
-        minify: {},
         excludeChunks: [ 'worker' ],
       })
     ],

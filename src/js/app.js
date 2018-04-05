@@ -1,4 +1,4 @@
-// TODO: cleanup a bit
+// TODO: use vue?
 // TODO: expose all options
 // TODO: make margin a %
 const worker = new Worker('./worker.js');

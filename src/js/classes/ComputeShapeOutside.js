@@ -151,10 +151,10 @@ export default class ComputeShapeOutside {
 
   _computeRawContour(mask) {
     const polygon = new Polygon();
-    // find starting point
     const maxX = this.wWidth - 1;
     const maxY = this.wHeight - 1;
 
+    // starting from top, find rightmost edges
     for (let y = 0; y <= maxY; y++) {
       let x = maxX;
       while (x >= 0 && mask[x][y] !== 2) {
@@ -164,6 +164,7 @@ export default class ComputeShapeOutside {
         polygon.push(x, y);
       }
     }
+    // starting from bottom, find leftmost edges
     for (let y = maxY; y >= 0; y--) {
       let x = 0;
       while (x <= maxX && mask[x][y] !== 2) {

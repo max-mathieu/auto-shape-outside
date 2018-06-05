@@ -2,20 +2,20 @@ const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-module.exports = function(env, argv) {
+module.exports = (env) => {
   const eslintOptions = {};
   let mode = 'production';
-  
-  if(env !== 'production') {
+
+  if (env !== 'production') {
     eslintOptions.rules = {
       'no-debugger': 0,
     };
     eslintOptions.fix = true;
     mode = 'development';
   }
-  
+
   return {
-    mode: 'development',
+    mode,
     entry: {
       app: './src/js/app',
       worker: './src/js/worker',
@@ -39,7 +39,7 @@ module.exports = function(env, argv) {
           query: {
             presets: ['es2015'],
           },
-        }
+        },
       ],
     },
     plugins: [
@@ -47,8 +47,8 @@ module.exports = function(env, argv) {
       new HtmlWebpackPlugin({
         filename: 'index.html',
         template: 'src/index.html',
-        excludeChunks: [ 'worker' ],
-      })
+        excludeChunks: ['worker'],
+      }),
     ],
     stats: {
       colors: true,
@@ -62,4 +62,4 @@ module.exports = function(env, argv) {
     },
     */
   };
-}
+};

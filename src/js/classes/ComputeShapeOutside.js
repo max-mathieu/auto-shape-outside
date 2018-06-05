@@ -1,4 +1,3 @@
-// BUG: marching squares improved to handle knots
 // TODO: add debugging flag with stats
 // TODO: grid class
 
@@ -156,47 +155,23 @@ export default class ComputeShapeOutside {
     const maxX = this.wWidth - 1;
     const maxY = this.wHeight - 1;
 
-    const getFirst = () => {
-      for (let x = 0; x <= maxX; x++) {
-        for (let y = 0; y <= maxY; y++) {
-          if (mask[x][y] === 2) {
-            return [x, y];
-          }
-        }
+    for (let y = 0; y <= maxY; y++) {
+      let x = maxX;
+      while (x >= 0 && mask[x][y] !== 2) {
+        x--;
       }
-      return [0, 0]; // just in case
-    };
-
-    let [curX, curY] = getFirst();
-    mask[curX][curY] = 3;
-
-    const getNext = () => {
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const newX = curX + dx;
-          const newY = curY + dy;
-          if (mask[newX][newY] === 2) {
-            return [dx, dy];
-          }
-        }
+      if (x >= 0) {
+        polygon.push(x, y);
       }
-      return null;
-    };
-    let next = getNext();
-    let dx = 0;
-    let dy = 0;
-    while (next) {
-      const [newDx, newDy] = next;
-      if (dx !== newDx || dy !== newDy) {
-        polygon.push(curX, curY);
-        dx = newDx;
-        dy = newDy;
+    }
+    for (let y = maxY; y >= 0; y--) {
+      let x = 0;
+      while (x <= maxX && mask[x][y] !== 2) {
+        x++;
       }
-      curX += dx;
-      curY += dy;
-
-      mask[curX][curY] = 3;
-      next = getNext();
+      if (x <= maxX) {
+        polygon.push(x, y);
+      }
     }
     return polygon;
   }

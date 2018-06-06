@@ -164,14 +164,20 @@ export default class ComputeShapeOutside {
         polygon.push(x, y);
       }
     }
+    const [firstX, firstY] = polygon.getFirst();
+    const [lastX, lastY] = polygon.getLast();
     // starting from bottom, find leftmost edges
-    for (let y = maxY; y >= 0; y--) {
+    for (let y = lastY; y >= 0; y--) {
       let x = 0;
       while (x <= maxX && mask[x][y] !== 2) {
         x++;
       }
       if (x <= maxX) {
-        polygon.push(x, y);
+        if ((y === lastY && x === lastX) || (y === firstY && x === firstX)) {
+          // no duplicate
+        } else {
+          polygon.push(x, y);
+        }
       }
     }
     return polygon;
@@ -230,8 +236,9 @@ export default class ComputeShapeOutside {
     const xScale = 100 / (curWidth - 1);
     const yScale = 100 / (curHeight - 1);
     for (let i = 0; i < clipped.length; i++) {
-      const xp = `${(clipped.x[i] * xScale).toFixed(0)}%`;
-      const yp = `${(clipped.y[i] * yScale).toFixed(0)}%`;
+      const [x, y] = clipped.getAt(i);
+      const xp = `${(x * xScale).toFixed(0)}%`;
+      const yp = `${(y * yScale).toFixed(0)}%`;
       result.push(`${xp} ${yp}`);
     }
     return result.join(', ');

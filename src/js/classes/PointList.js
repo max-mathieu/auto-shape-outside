@@ -30,6 +30,18 @@ export default class PointList {
     }
   }
 
+  getAt(index) {
+    return [this.x[index], this.y[index]];
+  }
+
+  getFirst() {
+    return this.getAt(0);
+  }
+
+  getLast() {
+    return this.getAt(this.length - 1);
+  }
+
   concat(other) {
     const newLength = this.length + other.length;
     if (this.x.length <= newLength) {

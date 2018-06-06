@@ -21,7 +21,7 @@ module.exports = (env) => {
       worker: './src/js/worker',
     },
     output: {
-      path: path.resolve(__dirname, 'dist'),
+      path: path.resolve(__dirname, 'docs/demo'),
       filename: '[name].js',
       globalObject: 'self', // https://github.com/webpack/webpack/issues/6642
     },
